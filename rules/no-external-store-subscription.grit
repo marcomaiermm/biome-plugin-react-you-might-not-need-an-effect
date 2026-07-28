@@ -1,0 +1,75 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+    `const [$_, $setter] = $use_state($...)` as $declaration,
+    `const [$_, $setter] = $use_state<$state_type>($...)` as $declaration,
+    `let [$_, $setter] = $use_state($...)` as $declaration,
+    `let [$_, $setter] = $use_state<$state_type>($...)` as $declaration
+} where {
+    $use_state <: or { `useState`, `React.useState` },
+    $declaration <: within or {
+        JsFunctionDeclaration() as $function,
+        JsArrowFunctionExpression() as $function
+    },
+    $function <: contains `$use_effect(() => { $body }, $dependencies)`,
+    $use_effect <: or { `useEffect`, `React.useEffect` },
+    $body <: contains or {
+        `return () => { $cleanup }`,
+        `return () => $cleanup`
+    },
+    or {
+        $body <: contains `$setter($value)` as $call until or {
+            JsArrowFunctionExpression(),
+            JsFunctionDeclaration(),
+            JsFunctionExpression()
+        },
+        $body <: contains `$helper($...)` as $call where {
+            $body <: contains or {
+                `const $helper = $setter`,
+                `const $helper = ($parameter) => $setter($helper_value)`,
+                `const $helper = () => $setter($helper_value)`,
+                `const $helper = ($parameter) => { $setter($helper_value) }`,
+                `const $helper = () => { $setter($helper_value) }`,
+                `function $helper($parameter) { $setter($helper_value) }`,
+                `function $helper() { $setter($helper_value) }`
+            }
+        } until or {
+            JsArrowFunctionExpression(),
+            JsFunctionDeclaration(),
+            JsFunctionExpression()
+        },
+        and {
+            $body <: contains `function $helper($arguments) { $helper_body }`,
+            $helper_body <: contains `$setter($helper_value)`,
+            $body <: contains `$helper($...)` as $call until or {
+                JsArrowFunctionExpression(),
+                JsFunctionDeclaration(),
+                JsFunctionExpression()
+            }
+        }
+    },
+    or {
+        $cleanup <: contains `$setter($...)`,
+        $body <: contains or {
+            `const $handler = ($parameter) => $setter($handler_value)`,
+            `const $handler = () => $setter($handler_value)`,
+            `const $handler = ($parameter) => { $setter($handler_value) }`,
+            `const $handler = () => { $setter($handler_value) }`,
+            `function $handler($parameter) { $setter($handler_value) }`,
+            `function $handler() { $setter($handler_value) }`
+        } where {
+            $cleanup <: contains $handler
+        },
+        and {
+            $body <: contains `function $handler($arguments) { $handler_body }`,
+            $handler_body <: contains `$setter($handler_value)`,
+            $cleanup <: contains $handler
+        }
+    },
+    register_diagnostic(
+        span = $call,
+        message = "Avoid mirroring an external store with an effect. Use useSyncExternalStore() instead.",
+        severity = "warn"
+    )
+}

@@ -1,0 +1,48 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+    `function $name($props) { $component_body }`,
+    `function $name($props: $props_type) { $component_body }`,
+    `const $name = memo(($props) => { $component_body })`,
+    `const $name = memo(($props: $props_type) => { $component_body })`
+} where {
+    $name <: r"[A-Z].*",
+    $component_body <: not r"(?s).*useState.*useState.*useState.*",
+    $component_body <: contains `$use_effect(() => { $effect_body }, [$..., $dependency, $...])`,
+    $use_effect <: or { `useEffect`, `React.useEffect` },
+    or {
+        $props <: contains $dependency,
+        $dependency <: contains $props,
+        $props <: contains $prop where {
+            $dependency <: contains $prop
+        }
+    },
+    or {
+        and {
+            $component_body <: contains or {
+                `const [$_, $setter] = $use_state($initial)`,
+                `const [$_, $setter] = $use_state<$state_type>($initial)`
+            },
+            $effect_body <: contains `$setter($initial)` as $call until or {
+                JsArrowFunctionExpression(),
+                JsFunctionDeclaration(),
+                JsFunctionExpression()
+            }
+        },
+        and {
+            $component_body <: contains `const [$_, $setter] = $use_state()`,
+            $effect_body <: contains `$setter(undefined)` as $call until or {
+                JsArrowFunctionExpression(),
+                JsFunctionDeclaration(),
+                JsFunctionExpression()
+            }
+        }
+    },
+    $use_state <: or { `useState`, `React.useState` },
+    register_diagnostic(
+        span = $call,
+        message = "Avoid resetting all state when a prop changes. Pass the prop as a key to reset the component.",
+        severity = "warn"
+    )
+}

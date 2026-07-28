@@ -1,0 +1,44 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+    `function $name($props) { $component_body }`,
+    `function $name($props: $props_type) { $component_body }`,
+    `const $name = ($props) => { $component_body }`,
+    `const $name = ($props: $props_type) => { $component_body }`
+} where {
+    $component_body <: contains or {
+        `$use_effect(() => { $effect_body })`,
+        `$use_effect(() => { $effect_body }, $dependencies)`
+    },
+    $use_effect <: or { `useEffect`, `React.useEffect` },
+    $effect_body <: contains `$callback($..., $argument, $...)` as $call until or {
+        JsArrowFunctionExpression(),
+        JsFunctionDeclaration(),
+        JsFunctionExpression()
+    },
+    or {
+        $props <: contains $callback,
+        $callback <: contains $props
+    },
+    or {
+        $component_body <: contains `const $argument = $data_hook($...)`,
+        and {
+            $component_body <: contains `const $data = $data_hook($...)`,
+            $component_body <: contains `const $argument = $derived`,
+            $derived <: contains $data
+        }
+    },
+    $data_hook <: r"use[A-Z].*",
+    $data_hook <: not or {
+        `useState`,
+        `React.useState`,
+        `useRef`,
+        `React.useRef`
+    },
+    register_diagnostic(
+        span = $call,
+        message = "Avoid passing fetched data to a parent in an effect. Fetch it in the parent or return it from the hook.",
+        severity = "warn"
+    )
+}

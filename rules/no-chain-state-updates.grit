@@ -1,0 +1,37 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+    JsFunctionDeclaration() as $function,
+    JsArrowFunctionExpression() as $function
+} where {
+    $function <: contains `$use_effect(() => { $body }, [$..., $state, $...])`,
+    $use_effect <: or { `useEffect`, `React.useEffect` },
+    $body <: contains `$setter($value)` as $call where {
+        $setter <: r"set[A-Z].*"
+    } until or {
+        JsArrowFunctionExpression(),
+        JsFunctionDeclaration(),
+        JsFunctionExpression()
+    },
+    $value <: not contains $state,
+    $function <: contains or {
+        `const [$state, $_] = $use_state($...)`,
+        `const [$state, $_] = $use_state<$state_type>($...)`,
+        `let [$state, $_] = $use_state($...)`,
+        `let [$state, $_] = $use_state<$state_type>($...)`
+    },
+    $use_state <: or { `useState`, `React.useState` },
+    $function <: contains or {
+        `const [$_, $setter] = $other_use_state($...)`,
+        `const [$_, $setter] = $other_use_state<$other_state_type>($...)`,
+        `let [$_, $setter] = $other_use_state($...)`,
+        `let [$_, $setter] = $other_use_state<$other_state_type>($...)`
+    },
+    $other_use_state <: or { `useState`, `React.useState` },
+    register_diagnostic(
+        span = $call,
+        message = "Avoid chaining state changes. Update related state together when the event occurs.",
+        severity = "warn"
+    )
+}

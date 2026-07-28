@@ -1,0 +1,782 @@
+{
+	"source": "https://github.com/nickjvandyke/eslint-plugin-react-you-might-not-need-an-effect",
+	"commit": "dfa7d257150dfa4fce7292a7227d19726f60ae9e",
+	"rules": {
+		"no-adjust-state-on-prop-change": {
+			"valid": [
+				{
+					"name": "Adjusting state directly during render",
+					"code": "\n        function List({ items }) {\n          const [isReverse, setIsReverse] = useState(false);\n          const [selection, setSelection] = useState(null);\n\n          const [prevItems, setPrevItems] = useState(items);\n          if (items !== prevItems) {\n            setPrevItems(items);\n            setSelection(null);\n          }\n        }\n      "
+				},
+				{
+					"name": "Set state to literal when internal state changes",
+					"code": "\n        function Counter() {\n          const [count, setCount] = useState(0);\n          const [otherState, setOtherState] = useState();\n\n          useEffect(() => {\n            setOtherState('Hello World');\n          }, [count]);\n        }\n      "
+				},
+				{
+					"name": "Set state to a value derived from props",
+					"code": "\n        function Counter({ count }) {\n          const [doubleCount, setDoubleCount] = useState(0);\n\n          useEffect(() => {\n            setDoubleCount(count * 2);\n          }, [count]);\n        }\n      "
+				}
+			],
+			"invalid": [
+				{
+					"name": "Set state to literal when prop changes",
+					"code": "\n        function List({ items }) {\n          const [selection, setSelection] = useState();\n\n          useEffect(() => {\n            setSelection(null);\n          }, [items]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set state to internal state when prop changes",
+					"code": "\n        function List({ items }) {\n          const [selection, setSelection] = useState();\n          const [internalData, setInternalData] = useState();\n\n          useEffect(() => {\n            setSelection(internalData);\n          }, [items, internalData]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set state to external state when prop changes",
+					"code": "\n        function List({ items }) {\n          const [selection, setSelection] = useState();\n          const { data: externalData } = useDataSource();\n\n          useEffect(() => {\n            setSelection(externalData);\n          }, [items]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Conditionally set state to literal when prop changes",
+					"code": "\n        function Form({ result }) {\n          const [error, setError] = useState();\n\n          useEffect(() => {\n            if (result.data) {\n              setError(null);\n            }\n          }, [result]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set state to literal when two props change",
+					"code": "\n        function List({ items, user }) {\n          const [selection, setSelection] = useState();\n\n          useEffect(() => {\n            setSelection(null);\n          }, [items, user]);\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		},
+		"no-chain-state-updates": {
+			"valid": [
+				{
+					"name": "Set state to literal when props change",
+					"code": "\n        function List({ items }) {\n          const [selection, setSelection] = useState();\n\n          useEffect(() => {\n            setSelection(null);\n          }, [items]);\n        }\n      "
+				},
+				{
+					"name": "Set state to derived internal state when internal state changes",
+					"code": "\n        function Counter() {\n          const [count, setCount] = useState(0);\n          const [doubleCount, setDoubleCount] = useState(0);\n\n          useEffect(() => {\n            setDoubleCount(count * 2);\n          }, [count]);\n        }\n      "
+				},
+				{
+					"name": "Set state to literal when external state changes",
+					"code": "\n        function Feed() {\n          const { data: posts } = useQuery('/posts');\n          const [scrollPosition, setScrollPosition] = useState(0);\n\n          useEffect(() => {\n            setScrollPosition(0);\n          }, [posts]);\n        }\n      "
+				},
+				{
+					"name": "Synchronize internal state with literal",
+					"code": "\n        function Component() {\n          const [isMounted, setIsMounted] = useState(false);\n\n          useEffect(() => {\n            setIsMounted(true);\n            return () => setIsMounted(false);\n          }, [setIsMounted]);\n        }\n      "
+				},
+				{
+					"name": "Set state to internal plus external state",
+					"code": "\n        function Game() {\n          const [round, setRound] = useState(1);\n          const [isGameOver, setIsGameOver] = useState(false);\n          const { data: players } = useQuery('/players');\n\n          useEffect(() => {\n            setIsGameOver(round > 10 || players.length === 0);\n          }, [round, players]);\n        }\n      "
+				},
+				{
+					"name": "JSON.stringifying internal state in deps",
+					"code": "\n        function Feed() {\n          const [posts, setPosts] = useState([]);\n          const [scrollPosition, setScrollPosition] = useState(0);\n\n          useEffect(() => {\n            setScrollPosition(0);\n          }, [JSON.stringify(posts)]);\n        }\n      "
+				}
+			],
+			"invalid": [
+				{
+					"name": "Set state to literal when internal state changes",
+					"code": "\n        function Game() {\n          const [round, setRound] = useState(1);\n          const [isGameOver, setIsGameOver] = useState(false);\n\n          useEffect(() => {\n            if (round > 10) {\n              setIsGameOver(true);\n            }\n          }, [round]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set state to derived literal when internal state changes",
+					"code": "\n        function Game() {\n          const [round, setRound] = useState(1);\n          const [isGameOver, setIsGameOver] = useState(false);\n\n          useEffect(() => {\n            if (round > 10) {\n              const finalRound = true;\n              setIsGameOver(finalRound);\n            }\n          }, [round]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set state to literal when internal or external state changes",
+					"code": "\n        function Game() {\n          const [round, setRound] = useState(1);\n          const [isGameOver, setIsGameOver] = useState(false);\n          const { data: players } = useQuery('/players');\n\n          useEffect(() => {\n            if (round > 10 || players.length === 0) {\n              setIsGameOver(true);\n            }\n          }, [round, players]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set state to external state when internal state changes",
+					"code": "\n        function Game() {\n          const [round, setRound] = useState(1);\n          const [isGameOver, setIsGameOver] = useState(false);\n          const { data: players } = useQuery('/players');\n\n          useEffect(() => {\n            if (round > 10) {\n              setIsGameOver(players.length === 0);\n            }\n          }, [round, players]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "In an otherwise valid effect",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n          const [otherState, setOtherState] = useState('Meow');\n\n          useEffect(() => {\n            console.log('Meow');\n            setState('Hello World');\n          }, [otherState]);\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		},
+		"no-derived-state": {
+			"valid": [
+				{
+					"name": "Compute in render from internal state",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Taylor');\n          const [lastName, setLastName] = useState('Swift');\n\n          const fullName = firstName + ' ' + lastName;\n        }\n      "
+				},
+				{
+					"name": "Compute in render from props",
+					"code": "\n        function Form({ firstName, lastName }) {\n          const fullName = firstName + ' ' + lastName;\n        }\n      "
+				},
+				{
+					"name": "Set to literal on external state change",
+					"code": "\n        function Feed() {\n          const { data: posts } = useQuery('/posts');\n          const [scrollPosition, setScrollPosition] = useState(0);\n\n          useEffect(() => {\n            setScrollPosition(0);\n          }, [posts]);\n        }\n      "
+				},
+				{
+					"name": "Set to derived literal on external state change",
+					"code": "\n        function Feed() {\n          const { data: posts } = useQuery('/posts');\n          const [scrollPosition, setScrollPosition] = useState(0);\n\n          useEffect(() => {\n            const initialPosition = 0;\n            setScrollPosition(initialPosition);\n          }, [posts]);\n        }\n      "
+				},
+				{
+					"name": "Set to external state",
+					"code": "\n        function Feed() {\n          const { data: posts } = useQuery('/posts');\n          const [selectedPost, setSelectedPost] = useState();\n\n          useEffect(() => {\n            setSelectedPost(posts[0]);\n          }, [posts]);\n        }\n      "
+				},
+				{
+					"name": "Fetch external state on mount",
+					"code": "\n        function Todos() {\n          const [todos, setTodos] = useState([]);\n\n          useEffect(() => {\n            fetch('/todos').then((todos) => {\n              setTodos(todos);\n            });\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "Sync external state",
+					"code": "\n        function Search() {\n          const [query, setQuery] = useState();\n          const [results, setResults] = useState();\n\n          useEffect(() => {\n            fetch('/search?query=' + query).then((data) => {\n              setResults(data);\n            });\n          }, [query]);\n\n          return (\n            <div>\n              <input\n                name=\"query\"\n                type=\"text\"\n                value={query}\n                onChange={(e) => setQuery(e.target.value)}\n              />\n              <ul>\n                {results.map((result) => (\n                  <li key={result.id}>{result.title}</li>\n                ))}\n              </ul>\n            </div>\n          )\n        }\n      "
+				},
+				{
+					"name": "Synchronize internal state",
+					"code": "\n        function Component() {\n          const [name, setName] = useState();\n          const [model] = useState(\n            () => new FormModel(props)\n          );\n\n          useEffect(() => {\n            model.setFieldDescriptor(name);\n            return () => model.removeField(name);\n          }, [model, name]);\n        }\n      "
+				},
+				{
+					"name": "Subscribe to external state",
+					"code": "\n        import { subscribeToStatus } from 'library';\n\n        function Status({ topic }) {\n          const [status, setStatus] = useState();\n\n          useEffect(() => {\n            const unsubscribe = subscribeToStatus(topic, (status) => {\n              setStatus(status);\n            });\n\n            return () => unsubscribe();\n          }, [topic]);\n\n          return <div>{status}</div>;\n        }\n      "
+				},
+				{
+					"name": "From props via impure derived setter",
+					"code": "\n        function DoubleCounter({ count }) {\n          const [doubleCount, setDoubleCount] = useState(0);\n\n          const derivedSetter = () => {\n            const multipler = fetch('/multipler');\n            setDoubleCount(multiplier);\n          }\n\n          useEffect(() => {\n            derivedSetter();\n          }, [count]);\n        }\n      "
+				},
+				{
+					"name": "Via impure promise global function",
+					"code": "\n        function Counter({ count }) {\n          const [multipliedCount, setMultipliedCount] = useState();\n\n          useEffect(() => {\n            fetch('/multiplier')\n              .then((res) => res.json())\n              .then((multiplier) => setMultipliedCount(count * multiplier));\n          }, [count]);\n        }\n      "
+				},
+				{
+					"name": "Mutate internal state",
+					"code": "\n        function DoubleList() {\n          const [list, setList] = useState([]);\n          const [doubleList, setDoubleList] = useState([]);\n\n          useEffect(() => {\n            doubleList.push(...list);\n          }, [list]);\n        }\n      "
+				},
+				{
+					"name": "Synchronous setter in anonymous callback",
+					"code": "\n          function useHasOverflow({ contentRef, maxHeight }) {\n            const [hasOverflow, setHasOverflow] = useState(false);\n\n            useEffect(() => {\n              const resizeObserver = createResizeObserver((element) => {\n                const hasContentOverflow = element.scrollHeight > maxHeight;\n                setHasOverflow(hasContentOverflow);\n              })\n\n              resizeObserver.observe(contentRef.current);\n            }, [contentRef, maxHeight]);\n\n            return hasOverflow;\n          }\n        "
+				}
+			],
+			"invalid": [
+				{
+					"name": "From internal state",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Taylor');\n          const [lastName, setLastName] = useState('Swift');\n\n          const [fullName, setFullName] = useState('');\n          useEffect(() => setFullName(firstName + ' ' + lastName), [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From derived internal state",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Taylor');\n          const [lastName, setLastName] = useState('Swift');\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            const name = firstName + ' ' + lastName;\n            setFullName(name) \n          }, [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From derived internal state outside effect",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Taylor');\n          const [lastName, setLastName] = useState('Swift');\n          const [fullName, setFullName] = useState('');\n          const name = firstName + ' ' + lastName;\n\n          useEffect(() => {\n            setFullName(name) \n          }, [name]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From internal state and external state",
+					"code": "\n        import { usePrefix } from 'library';\n\n        function Component() {\n          const [name, setName] = useState();\n          const [prefixedName, setPrefixedName] = useState();\n          const prefix = usePrefix(name);\n\n          useEffect(() => {\n            const newValue = prefix + name;\n            setPrefixedName(newValue);\n          }, [prefix, name])\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From props",
+					"code": "\n        function Form({ firstName, lastName }) {\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            setFullName(firstName + ' ' + lastName);\n          }, [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From intermediate prop",
+					"code": "\n        function Form({ firstName, lastName }) {\n          const [fullName, setFullName] = useState('');\n          const prefixedName = 'Dr. ' + firstName;\n\n          useEffect(() => {\n            setFullName(prefixedName + ' ' + lastName);\n          }, [prefixedName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From props via method",
+					"code": "\n        function DoubleList({ list }) {\n          const [doubleList, setDoubleList] = useState([]);\n\n          useEffect(() => {\n            setDoubleList(list.concat(list));\n          }, [list]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From internal state via method",
+					"code": "\n        function DoubleList() {\n          const [list, setList] = useState([]);\n          const [doubleList, setDoubleList] = useState([]);\n\n          useEffect(() => {\n            setDoubleList(list.concat(list));\n          }, [list]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From props and internal state",
+					"code": "\n        function Form({ title }) {\n          const [name, setName] = useState('Dwayne');\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            setFullName(title + ' ' + name);\n          }, [title, name]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From props and internal state via intermediate variable",
+					"code": "\n        function Form({ title }) {\n          const [name, setName] = useState('Dwayne');\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            const newFullName = title + ' ' + name;\n            setFullName(newFullName);\n          }, [title, name]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From internal plus external state",
+					"code": "\n        function Form() {\n          const prefix = useQuery('/prefix');\n          const [name, setName] = useState();\n          const [prefixedName, setPrefixedName] = useState();\n\n          useEffect(() => {\n            setPrefixedName(prefix + name)\n          }, [prefix, name]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From props via callback setter",
+					"code": "\n        import { useState, useEffect } from 'react';\n\n        function CountAccumulator({ count }) {\n          const [total, setTotal] = useState(count);\n\n          useEffect(() => {\n            setTotal((prev) => prev + count);\n          }, [count]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "From props via pure derived setter",
+					"code": "\n        function DoubleCounter({ count }) {\n          const [doubleCount, setDoubleCount] = useState(0);\n\n          const derivedSetter = (count) => setDoubleCount(count * 2);\n\n          useEffect(() => {\n            derivedSetter(count);\n          }, [count]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Partially update complex state from props",
+					"code": "\n        function Form({ firstName, lastName }) {\n          const [formData, setFormData] = useState({\n            title: 'Dr.',\n            fullName: '',\n          });\n\n          useEffect(() => {\n            setFormData({\n              ...formData,\n              fullName: firstName + ' ' + lastName,\n            });\n          }, [firstName, lastName, formData]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Partially update complex state from props via callback setter",
+					"code": "\n        function Form({ firstName, lastName }) {\n          const [formData, setFormData] = useState({\n            title: 'Dr.',\n            fullName: '',\n          });\n\n          useEffect(() => {\n            setFormData((prev) => ({\n              ...prev,\n              fullName: firstName + ' ' + lastName,\n            }));\n          }, [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Partially update complex state from props via derived setter",
+					"code": "\n        function Form({ firstName, lastName }) {\n          const [formData, setFormData] = useState({\n            title: 'Dr.',\n            fullName: '',\n          });\n\n          const setFullName = (fullName) => setFormData({ ...formData, fullName });\n\n          useEffect(() => {\n            setFormData({\n              ...formData,\n              fullName: firstName + ' ' + lastName,\n            });\n          }, [firstName, lastName, formData]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Derived state in larger, otherwise legit effect",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Taylor');\n          const [lastName, setLastName] = useState('Swift');\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            console.log(name);\n\n            setFullName(firstName + ' ' + lastName);\n          }, [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set to result of semi-pure local ArrowFunctionExpression",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Dwayne');\n          const [lastName, setLastName] = useState('The Rock');\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            const computeName = () => firstName + ' ' + lastName;\n\n            setFullName(computeName());\n          }, [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set to result of semi-pure local FunctionDeclaration",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Dwayne');\n          const [lastName, setLastName] = useState('The Rock');\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            function computeName() {\n              return firstName + ' ' + lastName;\n            }\n\n            setFullName(computeName());\n          }, [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Set to result of semi-pure function defined outside effect",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Dwayne');\n          const [lastName, setLastName] = useState('The Rock');\n          const [fullName, setFullName] = useState('');\n\n          const computeName = () => firstName + ' ' + lastName;\n\n          useEffect(() => {\n            setFullName(computeName());\n          }, [computeName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Via no-arg intermediate setter",
+					"code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('Dwayne');\n          const [lastName, setLastName] = useState('The Rock');\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            const doSet = () => {\n              setFullName(firstName + ' ' + lastName);\n            }\n\n            doSet();\n          }, [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Bare return is not treated as a cleanup function",
+					"code": "\n        function Form({ firstName, lastName }) {\n          const [fullName, setFullName] = useState('');\n\n          useEffect(() => {\n            setFullName(firstName + ' ' + lastName);\n            return;\n          }, [firstName, lastName]);\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		},
+		"no-event-handler": {
+			"valid": [
+				{
+					"name": "Synchronizing with external system",
+					"code": "\n        function Search() {\n          const [query, setQuery] = useState();\n          const [results, setResults] = useState();\n\n          useEffect(() => {\n            fetch('/search?query=' + query).then((data) => {\n              setResults(data);\n            });\n          }, [query]);\n\n          return (\n            <div>\n              <input\n                name=\"query\"\n                type=\"text\"\n                value={query}\n                onChange={(e) => setQuery(e.target.value)}\n              />\n              <ul>\n                {results.map((result) => (\n                  <li key={result.id}>{result.title}</li>\n                ))}\n              </ul>\n            </div>\n          )\n        }\n      "
+				},
+				{
+					"name": "Respond to prop passed to fn",
+					"code": "\n        import { useEffect } from 'react'\n\n        // Captures an optional URL search param and persists it to localStorage + cookie.\n        // First-touch attribution: never overwrites an existing code.\n        export function useSaveReferralCode(refCode) {\n          useEffect(() => {\n            const valid = validateReferralCode(refCode)\n            if (valid) saveReferredByCode(valid)\n          }, [refCode])\n        }\n      "
+				}
+			],
+			"invalid": [
+				{
+					"name": "Using props to handle an event and call an external function",
+					"code": "\n        function Form({ dataToSubmit }) {\n          useEffect(() => {\n            if (dataToSubmit) {\n              submitData(dataToSubmit);\n            }\n          }, [dataToSubmit]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Using state to handle an event and call an external function",
+					"code": "\n        function Form() {\n          const [name, setName] = useState();\n          const [dataToSubmit, setDataToSubmit] = useState();\n\n          useEffect(() => {\n            if (dataToSubmit) {\n              submitData(dataToSubmit);\n            }\n          }, [dataToSubmit]);\n\n          return (\n            <div>\n              <input\n                name=\"name\"\n                type=\"text\"\n                onChange={(e) => setName(e.target.value)}\n              />\n              <button onClick={() => setDataToSubmit({ name })}>Submit</button>\n            </div>\n          )\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Using state to handle an event, no deps argument",
+					"code": "\n        function Form() {\n          const [dataToSubmit, setDataToSubmit] = useState();\n\n          useEffect(() => {\n            if (dataToSubmit) {\n              submitData(dataToSubmit);\n            }\n          });\n\n          return (\n            <button onClick={() => setDataToSubmit({ name: 'test' })}>Submit</button>\n          )\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Using state to handle an event, empty deps",
+					"code": "\n        function Form() {\n          const [dataToSubmit, setDataToSubmit] = useState();\n\n          useEffect(() => {\n            if (dataToSubmit) {\n              submitData(dataToSubmit);\n            }\n          }, []);\n\n          return (\n            <button onClick={() => setDataToSubmit({ name: 'test' })}>Submit</button>\n          )\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Using state to handle an event and call a prop",
+					"code": "\n        function Form({ submitData }) {\n          const [name, setName] = useState();\n          const [dataToSubmit, setDataToSubmit] = useState();\n\n          useEffect(() => {\n            if (dataToSubmit) {\n              submitData(dataToSubmit);\n            }\n          }, [dataToSubmit]);\n\n          return (\n            <div>\n              <input\n                name=\"name\"\n                type=\"text\"\n                onChange={(e) => setName(e.target.value)}\n              />\n              <button onClick={() => setDataToSubmit({ name })}>Submit</button>\n            </div>\n          )\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Early return in if test",
+					"code": "\n        function Form() {\n          const [name, setName] = useState();\n          const [dataToSubmit, setDataToSubmit] = useState();\n\n          useEffect(() => {\n            if (!dataToSubmit) return;\n\n            submitData(dataToSubmit);\n          }, [dataToSubmit]);\n\n          return (\n            <div>\n              <input\n                name=\"name\"\n                type=\"text\"\n                onChange={(e) => setName(e.target.value)}\n              />\n              <button onClick={() => setDataToSubmit({ name })}>Submit</button>\n            </div>\n          )\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Member access and double test in condition",
+					"code": "\n        function Form() {\n          const [name, setName] = useState();\n          const [dataToSubmit, setDataToSubmit] = useState();\n\n          useEffect(() => {\n            if (dataToSubmit.name && dataToSubmit.name.length > 0) {\n              submitData(dataToSubmit);\n            }\n          }, [dataToSubmit]);\n\n          return (\n            <div>\n              <input\n                name=\"name\"\n                type=\"text\"\n                onChange={(e) => setName(e.target.value)}\n              />\n              <button onClick={() => setDataToSubmit({ name })}>Submit</button>\n            </div>\n          )\n        }\n      ",
+					"diagnostics": 2
+				},
+				{
+					"name": "Derived prop in multiple if tests",
+					"code": "\n        import { useEffect } from \"react\";\n\n        function Form({ value }) {\n          const derived = value + 2;\n\n          useEffect(() => {\n            if (derived === \"a\") return;\n            if (derived === \"b\") return;\n          }, [derived]);\n        }\n      ",
+					"diagnostics": 2
+				},
+				{
+					"name": "If test includes non-state",
+					"code": "\n        function Form() {\n          const [name, setName] = useState();\n          const [dataToSubmit, setDataToSubmit] = useState();\n\n          useEffect(() => {\n            if (dataToSubmit && Date.now() % 2 === 0) {\n              submitData(dataToSubmit);\n            }\n          }, [dataToSubmit]);\n\n          return (\n            <div>\n              <input\n                name=\"name\"\n                type=\"text\"\n                onChange={(e) => setName(e.target.value)}\n              />\n              <button onClick={() => setDataToSubmit({ name })}>Submit</button>\n            </div>\n          )\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		},
+		"no-external-store-subscription": {
+			"valid": [
+				{
+					"name": "No useEffect",
+					"code": "\n        function C() {\n          const [count, setCount] = useState(0);\n          return <div>{count}</div>;\n        }\n      "
+				},
+				{
+					"name": "useEffect without cleanup, no state setter",
+					"code": "\n        function C() {\n          useEffect(() => {\n            console.log('hello');\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "useEffect without cleanup, with state setter",
+					"code": "\n        function C() {\n          const [count, setCount] = useState(0);\n          useEffect(() => {\n            setCount(1);\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "useEffect with cleanup but no synchronous state setter (setter only in callback)",
+					"code": "\n        function C() {\n          const [value, setValue] = useState(0);\n          useEffect(() => {\n            const timer = setInterval(() => {\n              setValue(Date.now());\n            }, 1000);\n            return () => clearInterval(timer);\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "useEffect with cleanup and sync setter, but setter not referenced in cleanup",
+					"code": "\n        function C() {\n          const [count, setCount] = useState(0);\n          useEffect(() => {\n            setCount(0);\n            const timer = setInterval(() => {}, 1000);\n            return () => clearInterval(timer);\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "Fetching data with cleanup (ignore pattern)",
+					"code": "\n        function C({ query }) {\n          const [results, setResults] = useState([]);\n          useEffect(() => {\n            let ignore = false;\n            fetchResults(query).then((json) => {\n              if (!ignore) setResults(json);\n            });\n            return () => { ignore = true; };\n          }, [query]);\n        }\n      "
+				},
+				{
+					"name": "ResizeObserver pattern (setter only in callback)",
+					"code": "\n        function C({ ref }) {\n          const [size, setSize] = useState();\n          useEffect(() => {\n            const observer = new ResizeObserver((entry) => {\n              setSize(entry.contentRect.width);\n            });\n            observer.observe(ref.current);\n            return () => observer.disconnect();\n          }, [ref]);\n        }\n      "
+				},
+				{
+					"name": "Store subscribe returns unsubscribe, no sync setter in body",
+					"code": "\n        function useStoreValue(store) {\n          const [value, setValue] = useState(store.get());\n          useEffect(() => {\n            const unsubscribe = store.subscribe((v) => setValue(v));\n            return unsubscribe;\n          }, [store]);\n          return value;\n        }\n      "
+				},
+				{
+					"name": "Empty deps with unrelated cleanup (timer id, not setter)",
+					"code": "\n        function C() {\n          const [count, setCount] = useState(0);\n          useEffect(() => {\n            setCount(0);\n            return () => console.log('cleanup');\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "State setter called synchronously, cleanup references something else entirely",
+					"code": "\n        function C() {\n          const [x, setX] = useState(0);\n          useEffect(() => {\n            setX(1);\n            const id = setTimeout(() => {}, 0);\n            return () => clearTimeout(id);\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "Multiple setters, none connected to cleanup",
+					"code": "\n        function C() {\n          const [a, setA] = useState(0);\n          const [b, setB] = useState(0);\n          useEffect(() => {\n            setA(1);\n            setB(2);\n            const id = setInterval(() => {}, 0);\n            return () => clearInterval(id);\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "Cleanup references a callback that doesn't touch the setter",
+					"code": "\n        function C() {\n          const [isOnline, setIsOnline] = useState(true);\n          useEffect(() => {\n            setIsOnline(navigator.onLine);\n            const cb = () => console.log('no setter here');\n            window.addEventListener('click', cb);\n            return () => window.removeEventListener('click', cb);\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "Synchronous setter via .then (async, not sync)",
+					"code": "\n        function C() {\n          const [data, setData] = useState(null);\n          useEffect(() => {\n            fetch('/data').then((res) => setData(res));\n            return () => abortController.abort();\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "Synchronous IIFE wrapping setter, cleanup not connected",
+					"code": "\n        function C() {\n          const [x, setX] = useState(0);\n          useEffect(() => {\n            (() => { setX(readExternal()); })();\n            return () => console.log('cleanup');\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "void expression wrapping synchronous setter, cleanup not connected",
+					"code": "\n        function C() {\n          const [x, setX] = useState(0);\n          useEffect(() => {\n            void setX(readExternal());\n            return () => console.log('cleanup');\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "Body setter and cleanup reference different setters of same component",
+					"code": "\n        function C() {\n          const [a, setA] = useState(0);\n          const [b, setB] = useState(0);\n          useEffect(() => {\n            setA(readExternal());\n            const hb = (v) => setB(v);\n            store.subscribe(hb);\n            return () => store.unsubscribe(hb);\n          }, []);\n        }\n      "
+				}
+			],
+			"invalid": [
+				{
+					"name": "Canonical useOnlineStatus pattern from docs",
+					"code": "\n        function useOnlineStatus() {\n          const [isOnline, setIsOnline] = useState(true);\n          useEffect(() => {\n            function updateState() {\n              setIsOnline(navigator.onLine);\n            }\n            updateState();\n            window.addEventListener('online', updateState);\n            window.addEventListener('offline', updateState);\n            return () => {\n              window.removeEventListener('online', updateState);\n              window.removeEventListener('offline', updateState);\n            };\n          }, []);\n          return isOnline;\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Inline arrow cleanup with same closure chain",
+					"code": "\n        function useOnlineStatus() {\n          const [isOnline, setIsOnline] = useState(true);\n          useEffect(() => {\n            const update = () => setIsOnline(navigator.onLine);\n            update();\n            window.addEventListener('online', update);\n            return () => window.removeEventListener('online', update);\n          }, []);\n          return isOnline;\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Setter referenced directly in cleanup",
+					"code": "\n        function C() {\n          const [isOnline, setIsOnline] = useState(true);\n          useEffect(() => {\n            setIsOnline(navigator.onLine);\n            return () => setIsOnline(false);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Handler referenced in cleanup calls the setter",
+					"code": "\n        function useStoreValue(store) {\n          const [value, setValue] = useState(0);\n          useEffect(() => {\n            setValue(store.get());\n            const handler = (v) => setValue(v);\n            store.subscribe(handler);\n            return () => store.unsubscribe(handler);\n          }, [store]);\n          return value;\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Multiple setters, one matching cleanup",
+					"code": "\n        function C() {\n          const [x, setX] = useState(0);\n          const [y, setY] = useState(0);\n          useEffect(() => {\n            setX(readStoreX());\n            setY(readStoreY());\n            const handlerX = (v) => setX(v);\n            const handlerY = (v) => setY(v);\n            storeX.subscribe(handlerX);\n            storeY.subscribe(handlerY);\n            return () => {\n              storeX.unsubscribe(handlerX);\n              storeY.unsubscribe(handlerY);\n            };\n          }, []);\n        }\n      ",
+					"diagnostics": 2
+				},
+				{
+					"name": "Split handler and synchronous setter, handler in cleanup",
+					"code": "\n        function C() {\n          const [value, setValue] = useState(0);\n          useEffect(() => {\n            setValue(readExternal());\n            const handler = (v) => setValue(v);\n            const sub = external.subscribe(handler);\n            return () => sub.unsubscribe(handler);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Intermediate synchronous function call pattern",
+					"code": "\n        function useStoreValue(store) {\n          const [value, setValue] = useState(0);\n          useEffect(() => {\n            const update = () => setValue(store.get());\n            update();\n            store.onChange(update);\n            return () => store.offChange(update);\n          }, [store]);\n          return value;\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Multiple sync setters, cleanup references one via arrow body",
+					"code": "\n        function C() {\n          const [x, setX] = useState(0);\n          const [y, setY] = useState(0);\n          useEffect(() => {\n            setX(readStoreX());\n            setY(readStoreY());\n            const hx = (v) => setX(v);\n            storeX.onChange(hx);\n            return () => storeX.offChange(hx);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Setter via callback setter (setX(c => ...)) both in body and cleanup",
+					"code": "\n        function C() {\n          const [count, setCount] = useState(0);\n          useEffect(() => {\n            setCount(readExternal());\n            return () => setCount(c => c + 1);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Body aliases setter directly, cleanup uses original name",
+					"code": "\n        function C() {\n          const [count, setCount] = useState(0);\n          useEffect(() => {\n            const update = setCount;\n            update(readExternal());\n            return () => setCount(0);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Body wraps setter in arrow function, cleanup uses original name",
+					"code": "\n        function C() {\n          const [count, setCount] = useState(0);\n          useEffect(() => {\n            const update = (v) => setCount(v);\n            update(readExternal());\n            return () => setCount(0);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		},
+		"no-initialize-state": {
+			"valid": [
+				{
+					"name": "To external data via Promise",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n\n          useEffect(() => {\n            fetch(\"https://api.example.com/data\")\n              .then(response => response.json())\n              .then(data => setState(data));\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "To external data via async IIFE",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n\n          useEffect(() => {\n            (async () => {\n              const response = await fetch(\"https://api.example.com/data\");\n              const data = await response.json();\n              setState(data);\n            })();\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "To literal inside synchronous IIFE",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n\n          useEffect(() => {\n            (() => {\n              setState(\"Hello\");\n            })();\n          }, []);\n        }\n      "
+				},
+				{
+					"name": "To literal inside IIFE inside callback",
+					"code": "\n        import { useEffect, useState } from 'react';\n\n        export const MyComponent = () => {\n          const [state, setState] = useState();\n\n          useEffect(() => {\n            window.addEventListener('load', () => {\n              (() => {\n                setState('Loaded');\n              })();\n            });\n          }, []);\n        };\n      "
+				},
+				{
+					"name": "To literal inside callback inside IIFE",
+					"code": "\n        import { useEffect, useState } from 'react';\n\n        export const MyComponent = () => {\n          const [state, setState] = useState();\n\n          useEffect(() => {\n            (() => {\n              window.addEventListener('load', () => {\n                setState('Loaded');\n              });\n            })();\n          }, []);\n        };\n      "
+				},
+				{
+					"name": "Setter with other dependency",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n          const [other, setOther] = useState();\n\n          useEffect(() => {\n            setState(\"Hello\");\n          }, [other]);\n        }\n      "
+				}
+			],
+			"invalid": [
+				{
+					"name": "To literal",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n\n          useEffect(() => {\n            setState(\"Hello\");\n          }, []);\n\n          return <div>{state}</div>;\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "To internal data",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n          const [otherState, setOtherState] = useState('Meow');\n\n          useEffect(() => {\n            setState(otherState);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "In an otherwise valid effect",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n\n          useEffect(() => {\n            console.log('Meow');\n            setState('Hello World');\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "To undefined",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState('Meow');\n\n          useEffect(() => {\n            setState();\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "To equivalent derived literals",
+					"code": "\n        function MyComponent() {\n          const upstream = 'Meow';\n          const [state, setState] = useState(upstream);\n\n          useEffect(() => {\n            const upstreamTwo = 'Meow';\n            setState(upstreamTwo);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Only setter in deps",
+					"code": "\n        function MyComponent() {\n          const [state, setState] = useState();\n\n          useEffect(() => {\n            setState(\"Hello\");\n          }, [setState]);\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		},
+		"no-pass-data-to-parent": {
+			"valid": [
+				{
+					"name": "Pass literal value",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          useEffect(() => {\n            onTextChanged(\"Hello World\");\n          }, [onTextChanged]);\n        }\n      "
+				},
+				{
+					"name": "Pass derived literal value",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          const hello = \"Hello\";\n          const world = \"World\";\n          const greeting = hello + \" \" + world;\n          useEffect(() => {\n            onTextChanged(greeting);\n          }, [onTextChanged]);\n        }\n      "
+				},
+				{
+					"name": "Pass internal state",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          const [text, setText] = useState();\n\n          useEffect(() => {\n            onTextChanged(text);\n          }, [onTextChanged, text]);\n\n          return (\n            <input\n              type=\"text\"\n              value={text}\n              onChange={(e) => setText(e.target.value)}\n            />\n          );\n        }\n      "
+				},
+				{
+					"name": "Pass prop",
+					"code": "\n        const Child = ({ text, onTextChanged }) => {\n          useEffect(() => {\n            onTextChanged(text);\n          }, [onTextChanged, text]);\n\n          return (\n            <input\n              type=\"text\"\n              value={text}\n              onChange={(e) => setText(e.target.value)}\n            />\n          );\n        }\n      "
+				},
+				{
+					"name": "No-arg prop callback",
+					"code": "\n        function Form({ onClose }) {\n          const [name, setName] = useState();\n          const [isOpen, setIsOpen] = useState(true);\n\n          useEffect(() => {\n            if (!isOpen) {\n              onClose();\n            }\n          }, [isOpen]);\n\n          return (\n            <button onClick={() => setIsOpen(false)}>Close</button>\n          )\n        }\n      "
+				},
+				{
+					"name": "Prop getter",
+					"code": "\n        function Child({ getData }) {\n          useEffect(() => {\n            console.log(getData());\n          }, [getData]);\n        }\n      "
+				},
+				{
+					"name": "Pass internal state to HOC prop",
+					"code": "\n        import { withRouter } from 'react-router-dom';\n\n        const MyComponent = withRouter(({ history }) => {\n          const [option, setOption] = useState();\n\n          useEffect(() => {\n            history.push(option);\n          }, [option]);\n        });\n      "
+				},
+				{
+					"name": "Pass external state to HOC prop",
+					"code": "\n        import { withRouter } from 'react-router-dom';\n\n        const MyComponent = withRouter(({ history }) => {\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            if (data.error) {\n              history.push('/error');\n            }\n          }, [data]);\n        });\n      "
+				},
+				{
+					"name": "Pass ref to parent",
+					"code": "\n        const Child = ({ onRef }) => {\n          const ref = useRef();\n\n          useEffect(() => {\n            onRef(ref.current);\n          }, [onRef, ref.current]);\n        }\n      "
+				},
+				{
+					"name": "Pass cleanup function that depends on ref",
+					"code": "\n        import { dropTargetForElements } from \"@atlaskit/pragmatic-drag-and-drop/element/adapter\";\n\n        function DeleteDropTarget({ onDelete }) {\n          const ref = React.useRef(null);\n\n          React.useEffect(() => {\n            const element = ref.current;\n            if (!element) {\n              return;\n            }\n\n            const cleanup = dropTargetForElements({\n              element,\n              onDrop: ({ source }) => {\n                onDelete(source.data);\n              },\n            });\n\n            return cleanup;\n          }, [onDelete]);\n\n          return <div ref={ref}>Drop an item here to delete</div>;\n        };\n      "
+				},
+				{
+					"name": "Effect inside custom hook returns MemberExpression cleanup",
+					"code": "\n        function useActorLogger(actorRef) {\n          useEffect(() => {\n            return actorRef.system.inspect((next) => {\n              if (next.type === '@xstate.snapshot') {\n                console.log('ACTOR SNAPSHOT', next.snapshot);\n              }\n            }).unsubscribe;\n          }, [actorRef]);\n        }\n      "
+				},
+				{
+					"name": "Register callback on own ref to pass data to parent",
+					"code": "\n        const Child = ({ onClicked }) => {\n          const ref = useRef();\n\n          useEffect(() => {\n            ref.current.addEventListener('click', (event) => {\n              onClicked(event);\n            });\n          }, [onClicked, ref]);\n        }\n      "
+				},
+				{
+					"name": "Register external callback on ref prop",
+					"code": "\n        const Child = ({ ref }) => {\n          useEffect(() => {\n            ref.current.addEventListener('click', (event) => {\n              console.log('Clicked', event);\n            });\n          }, [ref]);\n        }\n      "
+				},
+				{
+					"name": "Pass window event data to parent",
+					"code": "\n        const Child = ({ onResized }) => {\n          useEffect(() => {\n            window.addEventListener('resize', (event) => {\n              onResized({\n                width: window.innerWidth,\n                height: window.innerHeight,\n              });\n            });\n            return () => window.removeEventListener('resize', handleResize);\n          }, [onResized]);\n        }\n      "
+				}
+			],
+			"invalid": [
+				{
+					"name": "Pass external state",
+					"code": "\n        const Child = ({ onFetched }) => {\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            onFetched(data);\n          }, [onFetched, data]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass external state, no deps argument",
+					"code": "\n        const Child = ({ onFetched }) => {\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            onFetched(data);\n          });\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass external state, empty deps",
+					"code": "\n        const Child = ({ onFetched }) => {\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            onFetched(data);\n          }, []);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass external state in custom hook",
+					"code": "\n        const useCustomHook = ({ onFetched }) => {\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            onFetched(data);\n          }, [onFetched, data]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass derived external state",
+					"code": "\n        const Child = ({ onFetched }) => {\n          const data = useSomeAPI();\n          const firstElement = data[0];\n\n          useEffect(() => {\n            onFetched(firstElement);\n          }, [onFetched, firstElement]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass multiple external state",
+					"code": "\n        const Child = ({ onResult }) => {\n          const data = useSomeAPI();\n          const meta = useOtherAPI();\n\n          useEffect(() => {\n            onResult(data, meta);\n          }, [onResult, data, meta]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass external data and internal state (only data in message)",
+					"code": "\n        const Child = ({ onChanged }) => {\n          const [count, setCount] = useState(0);\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            onChanged(data, count);\n          }, [onChanged, data, count]);\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		},
+		"no-pass-live-state-to-parent": {
+			"valid": [
+				{
+					"name": "Pass literal value to prop callback",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          useEffect(() => {\n            onTextChanged(\"Hello World\");\n          }, [onTextChanged]);\n        }\n      "
+				},
+				{
+					"name": "Pass live external state",
+					"code": "\n        const Child = ({ onFetched }) => {\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            onFetched(data);\n          }, [onFetched, data]);\n        }\n      "
+				},
+				{
+					"name": "Pass prop to parent",
+					"code": "\n        const Child = ({ text, onTextChanged }) => {\n          useEffect(() => {\n            onTextChanged(text);\n          }, [text, onTextChanged]);\n        }\n      "
+				},
+				{
+					"name": "No-arg prop callback",
+					"code": "\n        function Form({ onClose }) {\n          const [name, setName] = useState();\n          const [isOpen, setIsOpen] = useState(true);\n\n          useEffect(() => {\n            if (!isOpen) {\n              onClose();\n            }\n          }, [isOpen]);\n\n          return (\n            <button onClick={() => setIsOpen(false)}>Close</button>\n          )\n        }\n      "
+				},
+				{
+					"name": "Prop getter",
+					"code": "\n        function Child({ getData }) {\n          useEffect(() => {\n            console.log(getData());\n          }, [getData]);\n        }\n      "
+				},
+				{
+					"name": "Pass internal state to HOC prop",
+					"code": "\n        import { withRouter } from 'react-router-dom';\n\n        const MyComponent = withRouter(({ history }) => {\n          const [option, setOption] = useState();\n\n          useEffect(() => {\n            history.push(option);\n          }, [option]);\n        });\n      "
+				},
+				{
+					"name": "Pass internal state to weird HOC prop",
+					"code": "\n        const MyComponent = inject('ourStore')(observer(({ ourStore }) => {\n          const [option, setOption] = useState();\n\n          useEffect(() => {\n            ourStore.push(option);\n          }, [option]);\n        }));\n      "
+				},
+				{
+					"name": "Pass internal state to separately-wrapped HOC prop",
+					"code": "\n        import { withRouter } from 'react-router-dom';\n\n        const MyComponent = ({ history }) => {\n          const [option, setOption] = useState();\n\n          useEffect(() => {\n            history.push(option);\n          }, [option]);\n        };\n\n        const wrapped = withRouter(MyComponent);\n      "
+				},
+				{
+					"name": "Pass internal state to weirdly-separately-wrapped HOC prop",
+					"code": "\n        import { withRouter } from 'react-router-dom';\n\n        const MyComponent = ({ history }) => {\n          const [option, setOption] = useState();\n\n          useEffect(() => {\n            history.push(option);\n          }, [option]);\n        };\n\n        const EnhancedComponent = inject('ourStore')(observer(MyComponent))\n        export default EnhancedComponent\n      "
+				},
+				{
+					"name": "Pass external state to HOC prop",
+					"code": "\n        import { withRouter } from 'react-router-dom';\n\n        const MyComponent = withRouter(({ history }) => {\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            if (data.error) {\n              history.push(data.error);\n            }\n          }, [data]);\n        });\n      "
+				},
+				{
+					"name": "Pass ref to parent",
+					"code": "\n        const Child = ({ onRef }) => {\n          const ref = useRef();\n\n          useEffect(() => {\n            onRef(ref.current);\n          }, [onRef, ref.current]);\n\n          return <div ref={ref}>Child</div>;\n        }\n      "
+				}
+			],
+			"invalid": [
+				{
+					"name": "Pass live internal state",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          const [text, setText] = useState();\n\n          useEffect(() => {\n            onTextChanged(text);\n          }, [onTextChanged, text]);\n\n          return (\n            <input\n              type=\"text\"\n              onChange={(e) => setText(e.target.value)}\n            />\n          );\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass live internal state, no deps argument",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          const [text, setText] = useState();\n\n          useEffect(() => {\n            onTextChanged(text);\n          });\n\n          return (\n            <input\n              type=\"text\"\n              onChange={(e) => setText(e.target.value)}\n            />\n          );\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass live internal state, empty deps",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          const [text, setText] = useState();\n\n          useEffect(() => {\n            onTextChanged(text);\n          }, []);\n\n          return (\n            <input\n              type=\"text\"\n              onChange={(e) => setText(e.target.value)}\n            />\n          );\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass live derived internal state in custom hook",
+					"code": "\n        const useCustomHook = ({ onTextChanged }) => {\n          const [text, setText] = useState();\n\n          useEffect(() => {\n            onTextChanged(text);\n          }, [onTextChanged, text]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass live internal state AND external state",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          const [text, setText] = useState();\n          const data = useSomeAPI();\n\n          useEffect(() => {\n            onTextChanged(text, data);\n          }, [onTextChanged, text, data]);\n\n          return (\n            <input\n              type=\"text\"\n              onChange={(e) => setText(e.target.value)}\n            />\n          );\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass live derived internal state",
+					"code": "\n        const Child = ({ onTextChanged }) => {\n          const [text, setText] = useState();\n\n          useEffect(() => {\n            const firstChar = text[0];\n            onTextChanged(firstChar);\n          }, [onTextChanged, text]);\n\n          return (\n            <input\n              type=\"text\"\n              onChange={(e) => setText(e.target.value)}\n            />\n          );\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass live internal state via derived prop",
+					"code": "\n        const Child = ({ onFetched }) => {\n          const [data, setData] = useState();\n          const onFetchedWrapper = (v) => onFetched(v);\n\n          useEffect(() => {\n            onFetchedWrapper(data);\n          }, [onFetched, data]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass live internal state via later-destructured prop",
+					"code": "\n        const Child = (props) => {\n          const [data, setData] = useState();\n          const { onFetched } = props;\n\n          useEffect(() => {\n            onFetched(data);\n          }, [onFetched, data]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass final internal state",
+					"code": "\n        function Form({ onSubmit }) {\n          const [name, setName] = useState();\n          const [dataToSubmit, setDataToSubmit] = useState();\n\n          useEffect(() => {\n            if (!dataToSubmit) return;\n\n            onSubmit(dataToSubmit);\n          }, [dataToSubmit]);\n\n          return (\n            <div>\n              <input\n                name=\"name\"\n                type=\"text\"\n                onChange={(e) => setName(e.target.value)}\n              />\n              <button onClick={() => setDataToSubmit({ name })}>Submit</button>\n            </div>\n          )\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Pass multiple live internal state",
+					"code": "\n        const Child = ({ onChanged }) => {\n          const [text, setText] = useState();\n          const [count, setCount] = useState(0);\n\n          useEffect(() => {\n            onChanged(text, count);\n          }, [onChanged, text, count]);\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		},
+		"no-reset-all-state-on-prop-change": {
+			"valid": [
+				{
+					"name": "Set state when a prop changes, but not to its default value",
+					"code": "\n        function List({ items }) {\n          const [selection, setSelection] = useState();\n\n          useEffect(() => {\n            setSelection(items[0]);\n          }, [items]);\n        }\n      "
+				},
+				{
+					"name": "Reset some state when a prop changes",
+					"code": "\n        function ProfilePage({ userId }) {\n          const [user, setUser] = useState(null);\n          const [comment, setComment] = useState('type something');\n          const [catName, setCatName] = useState('Sparky');\n\n          useEffect(() => {\n            setUser(null);\n            setComment('meow')\n          }, [userId]);\n        }\n      "
+				},
+				{
+					"name": "Undefined state initializer compared to state setter with literal null",
+					"code": "\n        function List({ items }) {\n          const [selectedItem, setSelectedItem] = useState();\n\n          useEffect(() => {\n            setSelectedItem(null);\n          }, [items]);\n        }\n      "
+				},
+				{
+					"name": "Reset all state when a prop changes inside lowercased function definition",
+					"code": "\n        function buildComponent() {\n          const [comment, setComment] = useState('type something');\n\n          useEffect(() => {\n            setComment('type something');\n          }, [userId]);\n\n          return <div>hi</div>;\n        }\n      "
+				},
+				{
+					"name": "Reset all state when a prop changes in a custom hook",
+					"code": "\n        function useCustomHook({ userId }) {\n          const [user, setUser] = useState(null);\n          const [comment, setComment] = useState('type something');\n\n          useEffect(() => {\n            setUser(null);\n            setComment('type something');\n          }, [userId]);\n        }\n      "
+				},
+				{
+					"name": "Reset all state to derived initial state when a prop changes",
+					"code": "\n        function ProfilePage({ userId }) {\n          const initialState = 'meow meow'\n          const [comment, setComment] = useState(initialState);\n\n          useEffect(() => {\n            const derivedInitialState = initialState + '!';\n            setComment(derivedInitialState);\n          }, [userId]);\n        }\n      "
+				},
+				{
+					"name": "Set state differently in callback to state-like hook",
+					"code": "\n        const Foo = () => {\n          const [_0, setState] = useState(false);\n          const [_1, startTransition] = useTransition();\n\n          useEffect(() => {\n            startTransition(() => {\n              setState(true);\n            });\n          }, []);\n\n          return null;\n        };\n      "
+				}
+			],
+			"invalid": [
+				{
+					"name": "Reset all state when a prop changes",
+					"code": "\n        function ProfilePage({ userId }) {\n          const [user, setUser] = useState(null);\n          const [comment, setComment] = useState('type something');\n\n          useEffect(() => {\n            setUser(null);\n            setComment('type something');\n          }, [userId]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Reset all state when a prop changes in memoized component",
+					"code": "\n        const ProfilePage = memo(({ userId }) => {\n          const [user, setUser] = useState(null);\n          const [comment, setComment] = useState('type something');\n\n          useEffect(() => {\n            setUser(null);\n            setComment('type something');\n          }, [userId]);\n        })\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Reset all state to shared var when a prop changes",
+					"code": "\n        function ProfilePage({ userId }) {\n          const initialState = 'meow meow'\n          const [user, setUser] = useState(null);\n          const [comment, setComment] = useState(initialState);\n\n          useEffect(() => {\n            setUser(null);\n            setComment(initialState);\n          }, [userId]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Reset all state when a prop member changes",
+					"code": "\n        function ProfilePage({ user }) {\n          const [comment, setComment] = useState('type something');\n\n          useEffect(() => {\n            setComment('type something');\n          }, [user.id]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Reset all state when one of two props change",
+					"code": "\n        function ProfilePage({ userId, friends }) {\n          const [comment, setComment] = useState('type something');\n\n          useEffect(() => {\n            setComment('type something');\n          }, [userId, friends]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Undefined state initializer compared to state setter with literal undefined",
+					"code": "\n        function List({ items }) {\n          const [selectedItem, setSelectedItem] = useState();\n\n          useEffect(() => {\n            setSelectedItem(undefined);\n          }, [items]);\n        }\n      ",
+					"diagnostics": 1
+				},
+				{
+					"name": "Reset all state to function call result when a prop changes",
+					"code": "\n        function ProfilePage({ userId }) {\n          const [comment, setComment] = useState(getInitialComment());\n\n          useEffect(() => {\n            setComment(getInitialComment());\n          }, [userId]);\n        }\n\n        function getInitialComment() {\n          return 'type something';\n        }\n      ",
+					"diagnostics": 1
+				}
+			]
+		}
+	}
+}

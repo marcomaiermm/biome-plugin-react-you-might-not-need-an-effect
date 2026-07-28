@@ -1,0 +1,30 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+    JsFunctionDeclaration() as $function,
+    JsArrowFunctionExpression() as $function
+} where {
+    $function <: contains or {
+        `const [$state, $setter] = $use_state($initial)`,
+        `const [$state, $setter] = $use_state<$state_type>($initial)`,
+        `let [$state, $setter] = $use_state($initial)`,
+        `let [$state, $setter] = $use_state<$state_type>($initial)`
+    },
+    $use_state <: or { `useState`, `React.useState` },
+    $function <: contains or {
+        `$use_effect(() => { $body }, [])`,
+        `$use_effect(() => { $body }, [$setter])`
+    },
+    $use_effect <: or { `useEffect`, `React.useEffect` },
+    $body <: contains `$setter($value)` as $call until or {
+        JsArrowFunctionExpression(),
+        JsFunctionDeclaration(),
+        JsFunctionExpression()
+    },
+    register_diagnostic(
+        span = $call,
+        message = "Avoid initializing state in an effect. Pass this value to useState() instead.",
+        severity = "warn"
+    )
+}

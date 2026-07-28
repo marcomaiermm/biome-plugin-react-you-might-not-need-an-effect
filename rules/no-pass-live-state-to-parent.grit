@@ -1,0 +1,56 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+    `function $name($props) { $component_body }`,
+    `function $name($props: $props_type) { $component_body }`,
+    `const $name = ($props) => { $component_body }`,
+    `const $name = ($props: $props_type) => { $component_body }`
+} where {
+    $component_body <: contains or {
+        `$use_effect(() => { $effect_body })`,
+        `$use_effect(() => { $effect_body }, $dependencies)`
+    },
+    $use_effect <: or { `useEffect`, `React.useEffect` },
+    $effect_body <: contains `$callback($..., $argument, $...)` as $call until or {
+        JsArrowFunctionExpression(),
+        JsFunctionDeclaration(),
+        JsFunctionExpression()
+    },
+    or {
+        $props <: contains $callback,
+        $callback <: contains $props,
+        and {
+            $component_body <: contains `const $callback = ($value) => $prop_callback($value)`,
+            $props <: contains $prop_callback
+        },
+        and {
+            $component_body <: contains `const $destructured = $props`,
+            $destructured <: contains $callback
+        }
+    },
+    or {
+        $component_body <: contains or {
+            `const [$argument, $_] = $use_state($...)`,
+            `const [$argument, $_] = $use_state<$state_type>($...)`,
+            `let [$argument, $_] = $use_state($...)`,
+            `let [$argument, $_] = $use_state<$state_type>($...)`
+        },
+        and {
+            $component_body <: contains or {
+                `const [$state, $_] = $use_state($...)`,
+                `const [$state, $_] = $use_state<$state_type>($...)`,
+                `let [$state, $_] = $use_state($...)`,
+                `let [$state, $_] = $use_state<$state_type>($...)`
+            },
+            $component_body <: contains `const $argument = $derived`,
+            $derived <: contains $state
+        }
+    },
+    $use_state <: or { `useState`, `React.useState` },
+    register_diagnostic(
+        span = $call,
+        message = "Avoid passing live state to a parent in an effect. Lift the state up or return it from the hook.",
+        severity = "warn"
+    )
+}

@@ -1,0 +1,120 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+    JsCallExpression() as $call where {
+        $call <: `$helper($dependency)`,
+        $call <: within `$use_effect(() => { $body }, [$..., $dependency, $...])`,
+        $use_effect <: or { `useEffect`, `React.useEffect` },
+        $call <: within JsFunctionDeclaration() as $function,
+        $function <: contains `const $helper = ($parameter) => $setter($value)`,
+        $value <: contains $parameter,
+        $function <: contains or {
+            `const [$_, $setter] = $use_state($...)`,
+            `const [$_, $setter] = $use_state<$state_type>($...)`
+        },
+        $use_state <: or { `useState`, `React.useState` },
+        register_diagnostic(
+            span = $call,
+            message = "Avoid storing derived state. Compute this value during render instead.",
+            severity = "warn"
+        )
+    },
+    JsCallExpression() as $call where {
+        $call <: `$helper()`,
+        $call <: within `$use_effect(() => { $body }, [$..., $dependency, $...])`,
+        $use_effect <: or { `useEffect`, `React.useEffect` },
+        $call <: within JsFunctionDeclaration() as $function,
+        $body <: contains `const $helper = () => { $helper_body }`,
+        $helper_body <: contains `$setter($value)`,
+        $value <: contains $dependency,
+        $function <: contains or {
+            `const [$_, $setter] = $use_state($...)`,
+            `const [$_, $setter] = $use_state<$state_type>($...)`
+        },
+        $use_state <: or { `useState`, `React.useState` },
+        register_diagnostic(
+            span = $call,
+            message = "Avoid storing derived state. Compute this value during render instead.",
+            severity = "warn"
+        )
+    },
+    JsFunctionDeclaration() as $function,
+    JsArrowFunctionExpression() as $function
+} where {
+    $function <: contains or {
+        `$use_effect(() => { $body }, [$..., $dependency, $...])`,
+        `$use_effect(() => $body, [$..., $dependency, $...])`
+    },
+    $use_effect <: or { `useEffect`, `React.useEffect` },
+    $body <: contains `$setter($value)` as $call where {
+        $setter <: r"set[A-Z].*"
+    } until or {
+        JsArrowFunctionExpression(),
+        JsFunctionDeclaration(),
+        JsFunctionExpression()
+    },
+    $function <: contains or {
+        `const [$_, $setter] = $use_state($...)`,
+        `const [$_, $setter] = $use_state<$state_type>($...)`,
+        `let [$_, $setter] = $use_state($...)`,
+        `let [$_, $setter] = $use_state<$state_type>($...)`
+    },
+    $use_state <: or { `useState`, `React.useState` },
+    or {
+        $value <: contains $dependency,
+        and {
+            $body <: contains `const $value = $derived`,
+            $derived <: contains $dependency
+        },
+        $function <: contains or {
+            `const [$source, $_] = $source_use_state($...)`,
+            `const [$source, $_] = $source_use_state<$source_type>($...)`
+        } where {
+            $source_use_state <: or { `useState`, `React.useState` },
+            or {
+                $value <: contains $source,
+                and {
+                    $body <: contains `const $value = $derived`,
+                    $derived <: contains $source
+                }
+            }
+        },
+        and {
+            $value <: `$helper($...)`,
+            $body <: contains or {
+                `const $helper = () => $derived`,
+                `const $helper = () => { $derived }`,
+                `function $helper() { $derived }`
+            },
+            $derived <: contains $dependency
+        }
+    },
+    not and {
+        $function <: contains or {
+            `const $dependency = $external_hook($...)`,
+            `const { data: $dependency } = $external_hook($...)`
+        } where {
+            $external_hook <: r"use[A-Z].*",
+            $external_hook <: not or { `useState`, `React.useState` }
+        },
+        not $function <: contains or {
+            `const [$internal, $_] = $internal_use_state($...)`,
+            `const [$internal, $_] = $internal_use_state<$internal_type>($...)`
+        } where {
+            $internal_use_state <: or { `useState`, `React.useState` },
+            or {
+                $value <: contains $internal,
+                and {
+                    $body <: contains `const $value = $internal_derived`,
+                    $internal_derived <: contains $internal
+                }
+            }
+        }
+    },
+    register_diagnostic(
+        span = $call,
+        message = "Avoid storing derived state. Compute this value during render instead.",
+        severity = "warn"
+    )
+}

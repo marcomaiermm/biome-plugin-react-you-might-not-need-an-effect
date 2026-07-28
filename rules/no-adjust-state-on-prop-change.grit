@@ -1,0 +1,34 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+    `function $name($props) { $component_body }`,
+    `function $name($props: $props_type) { $component_body }`,
+    `const $name = ($props) => { $component_body }`,
+    `const $name = ($props: $props_type) => { $component_body }`
+} where {
+    $component_body <: contains `$use_effect(() => { $effect_body }, [$..., $dependency, $...])`,
+    $use_effect <: or { `useEffect`, `React.useEffect` },
+    or {
+        $props <: contains $dependency,
+        $dependency <: contains $props
+    },
+    $effect_body <: contains `$setter($value)` as $call until or {
+        JsArrowFunctionExpression(),
+        JsFunctionDeclaration(),
+        JsFunctionExpression()
+    },
+    $component_body <: contains or {
+        `const [$_, $setter] = $use_state($...)`,
+        `const [$_, $setter] = $use_state<$state_type>($...)`,
+        `let [$_, $setter] = $use_state($...)`,
+        `let [$_, $setter] = $use_state<$state_type>($...)`
+    },
+    $use_state <: or { `useState`, `React.useState` },
+    $value <: not contains $dependency,
+    register_diagnostic(
+        span = $call,
+        message = "Avoid adjusting state when a prop changes. Adjust it during render or remove the redundant state.",
+        severity = "warn"
+    )
+}

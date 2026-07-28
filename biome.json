@@ -1,0 +1,14 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+	"plugins": [
+		"./rules/no-adjust-state-on-prop-change.grit",
+		"./rules/no-chain-state-updates.grit",
+		"./rules/no-derived-state.grit",
+		"./rules/no-event-handler.grit",
+		"./rules/no-external-store-subscription.grit",
+		"./rules/no-initialize-state.grit",
+		"./rules/no-pass-data-to-parent.grit",
+		"./rules/no-pass-live-state-to-parent.grit",
+		"./rules/no-reset-all-state-on-prop-change.grit"
+	]
+}

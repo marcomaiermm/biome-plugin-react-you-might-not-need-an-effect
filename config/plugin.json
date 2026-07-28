@@ -1,0 +1,14 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+	"plugins": [
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-adjust-state-on-prop-change.grit",
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-chain-state-updates.grit",
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-derived-state.grit",
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-event-handler.grit",
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-external-store-subscription.grit",
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-initialize-state.grit",
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-pass-data-to-parent.grit",
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-pass-live-state-to-parent.grit",
+		"./node_modules/biome-plugin-react-you-might-not-need-an-effect/rules/no-reset-all-state-on-prop-change.grit"
+	]
+}

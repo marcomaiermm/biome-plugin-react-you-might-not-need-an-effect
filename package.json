@@ -1,0 +1,30 @@
+{
+	"name": "biome-plugin-react-you-might-not-need-an-effect",
+	"version": "0.1.0",
+	"description": "Biome plugins that catch unnecessary React effects.",
+	"files": [
+		"rules",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"check": "biome check biome.json package.json scripts test",
+		"test": "node --test"
+	},
+	"keywords": [
+		"biome",
+		"biome-plugin",
+		"react",
+		"use-effect"
+	],
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"@biomejs/biome": "2.5.5"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"packageManager": "pnpm@11.17.0",
+	"type": "module"
+}
