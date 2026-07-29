@@ -1,14 +1,19 @@
 {
 	"name": "biome-plugin-react-you-might-not-need-an-effect",
 	"version": "0.1.0",
-	"description": "Biome plugins that catch unnecessary React effects.",
+	"description": "A Biome GritQL plugin that catches unnecessary React effects.",
 	"files": [
 		"rules",
+		"config",
 		"README.md",
 		"LICENSE"
 	],
+	"exports": {
+		"./biome": "./config/plugin.json"
+	},
 	"scripts": {
-		"check": "biome check biome.json package.json scripts test",
+		"check": "biome check biome.json config/plugin.json package.json scripts test",
+		"prepublishOnly": "pnpm check && pnpm test",
 		"test": "node --test"
 	},
 	"keywords": [
@@ -17,8 +22,19 @@
 		"react",
 		"use-effect"
 	],
-	"author": "",
+	"author": "marcomaiermm",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/marcomaiermm/biome-plugin-react-you-might-not-need-an-effect.git"
+	},
+	"homepage": "https://github.com/marcomaiermm/biome-plugin-react-you-might-not-need-an-effect#readme",
+	"bugs": {
+		"url": "https://github.com/marcomaiermm/biome-plugin-react-you-might-not-need-an-effect/issues"
+	},
+	"peerDependencies": {
+		"@biomejs/biome": ">=2.0.0"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.5"
 	},
