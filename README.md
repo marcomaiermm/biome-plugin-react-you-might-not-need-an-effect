@@ -41,3 +41,9 @@ functions. They also handle TypeScript state and prop annotations.
 `pnpm test` runs all 160 valid and invalid cases from the upstream ESLint
 plugin against the Biome CLI. The corpus is pinned to its source commit and can
 be refreshed with `node scripts/sync-upstream-tests.mjs <upstream-repository>`.
+
+## Release
+
+Change the version in `package.json`, push to `main`, and wait for CI. Then
+publish a GitHub release tagged `vX.Y.Z`; the release workflow verifies the tag
+and publishes the package to npm.
