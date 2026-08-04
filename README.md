@@ -1,5 +1,9 @@
 # biome-plugin-react-you-might-not-need-an-effect
 
+[![CI](https://github.com/marcomaiermm/biome-plugin-react-you-might-not-need-an-effect/actions/workflows/ci.yml/badge.svg)](https://github.com/marcomaiermm/biome-plugin-react-you-might-not-need-an-effect/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/biome-plugin-react-you-might-not-need-an-effect)](https://www.npmjs.com/package/biome-plugin-react-you-might-not-need-an-effect)
+[![license](https://img.shields.io/npm/l/biome-plugin-react-you-might-not-need-an-effect)](./LICENSE)
+
 A Biome GritQL port of
 [`eslint-plugin-react-you-might-not-need-an-effect`](https://github.com/nickjvandyke/eslint-plugin-react-you-might-not-need-an-effect).
 
