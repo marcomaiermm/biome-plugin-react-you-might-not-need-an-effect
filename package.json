@@ -9,6 +9,7 @@
 		"LICENSE"
 	],
 	"exports": {
+		".": "./config/plugin.json",
 		"./biome": "./config/plugin.json"
 	},
 	"scripts": {

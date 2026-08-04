@@ -109,7 +109,7 @@ test("consumer can extend the package config", () => {
 		writeFileSync(
 			join(consumer, "biome.json"),
 			JSON.stringify({
-				extends: ["biome-plugin-react-you-might-not-need-an-effect/biome"],
+				extends: ["biome-plugin-react-you-might-not-need-an-effect"],
 				linter: { rules: { recommended: false } },
 			}),
 		);

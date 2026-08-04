@@ -17,7 +17,7 @@ Extend the package config in `biome.json`:
 
 ```json
 {
-  "extends": ["biome-plugin-react-you-might-not-need-an-effect/biome"]
+  "extends": ["biome-plugin-react-you-might-not-need-an-effect"]
 }
 ```
 
